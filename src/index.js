@@ -8,10 +8,8 @@ import "simplelightbox/dist/simple-lightbox.min.css";
 const refs = {
     form: document.querySelector('.search-form'),
     input: document.querySelector('[name="searchQuery"]'),
-    btn: document.querySelector('[type="submit"]'),
     div: document.querySelector('.gallery'),
     loadMoreBtn: document.querySelector('.load-more'),
-    photoCard: document.querySelector('.photo-card'),
 };
 
 const API_KEY = '24743165-5cd957bc5a8953f7a8bedce16';
@@ -26,6 +24,22 @@ const searchParams = new URLSearchParams({
     per_page: 40, 
 });
 
+const onLoadMoreBtnClick = () => {
+  page += 1;
+  const url = `${BASE_URL}?key=${API_KEY}&q=${query}&${searchParams}&page=${page}`;
+
+  getInfo(url);
+  
+};
+
+const showLoadMoreBtn = () => {
+  refs.loadMoreBtn.classList.add('visible')
+};
+
+const hideLoadMoreBtn = () => {
+  refs.loadMoreBtn.classList.remove('visible')
+};
+
 async function getInfo(url) {
   try {
       const response = await Axios.get(url);
@@ -34,18 +48,22 @@ async function getInfo(url) {
         hideLoadMoreBtn();
         return;
       };
-      
+    if (page > 1) {
+        renderCards(response.data.hits);
+      Notiflix.Notify.info(`Added ${response.data.hits.length} images.`);
+    };
+    if (page === 1) {
       renderCards(response.data.hits);
       Notiflix.Notify.success(`Hooray! We found ${response.data.totalHits} images.`);
-    console.log(response.data);
+    }
+      
+    
   } catch (error) {
     console.error(error);
     hideLoadMoreBtn();
     Notiflix.Notify.warning("We're sorry, but you've reached the end of search results.");
   }
 };
-
-
 
 function emptyArray() {
     clearGallery();
@@ -88,6 +106,7 @@ function renderCards(cards) {
 
    
   refs.div.insertAdjacentHTML('beforeend', markup);
+  openOriginal();
   
 };
 
@@ -96,38 +115,26 @@ function onSearch(e) {
   clearGallery();
   page = 1;
   query = e.currentTarget.elements.searchQuery.value;
+  
   const url = `${BASE_URL}?key=${API_KEY}&q=${query}&${searchParams}&page=${page}`;
 
   getInfo(url);
   clearInput();
   showLoadMoreBtn();
+  
 };
 
 function clearInput() {
   refs.input.value = '';
 }
 
-function onLoadMoreBtnClick() {
-  page += 1;
-  const url = `${BASE_URL}?key=${API_KEY}&q=${query}&${searchParams}&page=${page}`;
 
-  getInfo(url);
+function openOriginal() {
+    const lightbox = new SimpleLightbox('.gallery a', {captionType: 'attr', captionsData: 'alt', captionPosition: 'bottom', captionDelay: 250});
+    lightbox.refresh();
+  
 };
 
-function showLoadMoreBtn() {
-  refs.loadMoreBtn.classList.add('visible')
-};
 
-function hideLoadMoreBtn() {
-  refs.loadMoreBtn.classList.remove('visible')
-};
-
-function openOriginal(event) {
-    const lightbox = new SimpleLightbox('.photo-card a', {captionType: 'attr', captionsData: 'alt', captionPosition: 'bottom', captionDelay: 250});
-    lightbox.refresh()
-    event.preventDefault();
-};
-
-refs.div.addEventListener('click', openOriginal);
 refs.form.addEventListener('submit', onSearch);
 refs.loadMoreBtn.addEventListener('click', onLoadMoreBtnClick);
